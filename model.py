@@ -9,24 +9,36 @@ from diffusion_net.layers import DiffusionNet
 # maps block
 from utils import get_mask, nn_interpolate
 
-
+"""
+RegularizedFMNet类用于计算functional map矩阵
+"""
 class RegularizedFMNet(nn.Module):
     """Compute the functional map matrix representation."""
-
+    
     def __init__(self, lambda_=1e-3, resolvant_gamma=0.5):
         super().__init__()
         self.lambda_ = lambda_
         self.resolvant_gamma = resolvant_gamma
 
+        """
+        feat_x和feat_y分别代表两个输入特征矩阵
+        evals_x和evals_y是它们对应的特征值矩阵
+        evecs_trans_x和evecs_trans_y是它们对应的特征向量矩阵的转置
+        """
     def forward(self, feat_x, feat_y, evals_x, evals_y, evecs_trans_x, evecs_trans_y):
         # compute linear operator matrix representation C1 and C2
+        
+        # evecs_trans_x和evecs_trans_y从3维张量扩展为4维张量
         evecs_trans_x, evecs_trans_y = evecs_trans_x.unsqueeze(0), evecs_trans_y.unsqueeze(0)
+        # evals_x和evals_y从1维张量扩展为2维张量
         evals_x, evals_y = evals_x.unsqueeze(0), evals_y.unsqueeze(0)
 
+        # 使用torch.bmm函数将evecs_trans_x和feat_x相乘，以及evecs_trans_y和feat_y相乘，F_hat和G_hat都是3维张量
         F_hat = torch.bmm(evecs_trans_x, feat_x)
         G_hat = torch.bmm(evecs_trans_y, feat_y)
         A, B = F_hat, G_hat
 
+        # 调用函数get_mask计算D，D是2维张量，采用unsqueeze(0)将其扩展为3维张量
         D = get_mask(evals_x.flatten(), evals_y.flatten(), self.resolvant_gamma, feat_x.device).unsqueeze(0)
 
         A_t = A.transpose(1, 2)
@@ -34,14 +46,22 @@ class RegularizedFMNet(nn.Module):
         B_A_t = torch.bmm(B, A_t)
 
         C_i = []
+        # 采用for循环遍历evals_x的第二个维度，即在多维张量evals_x中的列数
+        # 在循环中，首先使用torch.diag函数将D的某一列转换为对角矩阵，并将其存储在D_i中
+        # 然后使用for循环遍历evals_x的第一维度，并将每个bs下的D_i作为一个元素存储在列表C_i中
+        # 接下来，通过torch.inverse函数和torch.bmm函数计算C，并将其转置后存储在C_i中
         for i in range(evals_x.size(1)):
             D_i = torch.cat([torch.diag(D[bs, i, :].flatten()).unsqueeze(0) for bs in range(evals_x.size(0))], dim=0)
             C = torch.bmm(torch.inverse(A_A_t + self.lambda_ * D_i), B_A_t[:, i, :].unsqueeze(1).transpose(1, 2))
             C_i.append(C.transpose(1, 2))
+        # 采用torch.cat函数将列表C_i中的所有张量按照第二个维度进行拼接，得到最终的C
         C = torch.cat(C_i, dim=1)
 
         return C
 
+"""
+RegularizedCFMNet类用于计算复杂函数映射矩阵
+"""
 class RegularizedCFMNet(nn.Module):
     """Compute the complex functional map matrix representation."""
 
@@ -84,7 +104,12 @@ class RegularizedCFMNet(nn.Module):
 
         return Q
 
-
+"""
+DQFMNet类是全局模型的组合，包含扩散网络作为特征提取器、fmap + q-fmap和无监督损失
+DQFMNet使用diffusion net作为特征提取器,从输入数据中提取特征，
+然后将特征传递给RegularizedFMNet和RegularizedCFMNet来计算函数映射和复杂函数映射矩阵。
+这些矩阵被用来计算无监督损失
+"""
 class DQFMNet(nn.Module):
     """
     Compilation of the global model :
