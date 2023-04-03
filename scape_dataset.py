@@ -99,6 +99,7 @@ class ScapeDataset(Dataset):
         self.used_shapes = sorted([x.stem for x in (Path(root_dir) / shapes_split).iterdir() if 'DS_' not in x.stem])
 
         # set combinations
+        # 通过 permutations() 函数生成一个形状组合的列表，即将每一对形状之间的组合作为元组 (i, j) 存储在 self.combinations 中
         self.combinations = list(permutations(range(len(self.used_shapes)), 2))
 
         #
@@ -121,24 +122,40 @@ class ScapeDataset(Dataset):
             # verts, faces = pp3d.read_mesh(str(mesh_dirpath / f"{shape_name}.off"))
 
             # to torch
+            # 将顶点数据转换为PyTorch张量格式，并存储在self.verts_list中
             verts = torch.tensor(np.ascontiguousarray(verts)).float()
+            # 将面数据转换为PyTorch张量格式，并存储在self.faces_list中
             faces = torch.tensor(np.ascontiguousarray(faces))
             self.verts_list.append(verts)
             self.faces_list.append(faces)
 
             # vts
+            # 从对应关系文件（.vts文件）中加载每个顶点的对应顶点索引数据，并将其存储为Numpy数组格式。
+            # 由于数组是从1开始计数的，而不是从0开始，因此需要将所有索引减1。
             vts = np.loadtxt(str(vts_dirpath / f"{shape_name}.vts"), dtype=int) - 1
+            # 将Numpy数组格式的顶点对应关系数据存储在self.vts_list中
             self.vts_list.append(vts)
+            # 如果设置了with_sym为True，则加载与每个形状的对称形状相关的对应关系数据，并将其存储在vts_sym_list中
             if with_sym:
                 vts_sym = np.loadtxt(str(vts_dirpath / f"{shape_name}.sym.vts"), dtype=int) - 1
                 vts_sym_list.append(vts_sym)
 
         # we store vts_sym also in vts_list (for saving)
+        # 如果 with_sym 为 True，说明数据集需要使用对称版本的数据，因此将 vts_list 属性存储为一个包含两个列表的列表，
+        # 其中第一个列表是原始版本的顶点对应关系文件，第二个列表是对称版本的顶点对应关系文件。
         if with_sym:
             self.vts_list = [self.vts_list, vts_sym_list]
 
 
         # Precompute operators
+        # 函数返回以下预处理的几何操作：
+        # frames_list：每个形状的法向量和切向量组成的帧，张量形状为 N*6，其中前三列为法向量，后三列为切向量。
+        # massvec_list：每个形状的每个顶点的面积权重，张量形状为 N*1
+        # L_list：每个形状的拉普拉斯算子矩阵，张量形状为N*N
+        # evals_list：每个形状的拉普拉斯算子矩阵的特征值，张量形状为k_eig*1
+        # evecs_list：每个形状的拉普拉斯算子矩阵的前k_eig个特征向量，张量形状为N*k_eig
+        # gradX_list：每个形状的顶点x方向的梯度，张量形状为N*N
+        # gradY_list：每个形状的顶点y方向的梯度，张量形状为N*N
         (
             self.frames_list,
             self.massvec_list,
@@ -155,12 +172,14 @@ class ScapeDataset(Dataset):
         )
 
         # compute wks descriptors if required (and replace vertices field with it)
+        # 计算WKS描述符并用其替换每个形状的顶点数据
         if with_wks is not None:
             print("compute WKS descriptors")
             for i in tqdm(range(len(self.used_shapes))):
                 self.verts_list[i] = auto_WKS(self.evals_list[i], self.evecs_list[i], with_wks).float()
 
         # now we also need to get the complex Laplacian and the spectral gradients
+        # 计算complex Laplace算子和其对应的谱梯度（spectral gradient）等几个操作符
         print("loading operators for Q...")
         self.cevecs_list = []
         self.cevals_list = []
@@ -168,6 +187,7 @@ class ScapeDataset(Dataset):
         for shape_name in tqdm(self.used_shapes):
 
             # case where computing complex spectral is not possible (non manifoldness, borders, point cloud, ...)
+            # 如果计算复谱不可行（比如对于非流形形状、边界和点云等），则在相应列表中添加None，并跳过这个形状的计算
             if n_cfmap == 0:
                 self.cevecs_list += [None]
                 self.cevals_list += [None]
@@ -216,6 +236,7 @@ class ScapeDataset(Dataset):
     def __len__(self):
         return len(self.combinations)
 
+    # 对于给定的索引 idx，该函数将返回一个包含两个形状信息的字典（即 shape1 和 shape2），以及一个描述两个形状之间的变换关系的矩阵 C_gt
     def __getitem__(self, idx):
 
         # get indexes
