@@ -246,9 +246,12 @@ class ShrecDataset(Dataset):
         # Compute fmap
         evec_1, evec_2 = shape1["evecs"][:, :self.n_fmap], shape2["evecs"][:, :self.n_fmap]
 
+        # 从 self.gt_list 字典中获取给定索引对 (idx1, idx2) 对应的ground-truth
         gt = self.gt_list[(idx1, idx2)]
+        # 将获取到的ground-truth添加到 shape1 字典中，以便在评估模型时使用
         shape1['gt'] = gt  # add it on shape 1 for eval
 
+        # 计算shape2 到 shape1 的functional map C_gt
         C_gt = torch.pinverse(evec_2[gt]) @ evec_1
         # C_gt = torch.eye(self.n_fmap)  # if we don't want to compute the map at all
 
