@@ -6,7 +6,6 @@ from scape_dataset import ScapeDataset, shape_to_device
 from shrec_dataset import ShrecDataset, shape_to_device
 from model import DQFMNet
 from utils import DQFMLoss, augment_batch, augment_batch_sym
-#
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -151,6 +150,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--config", type=str, default="scape_r", help="Config file name")
 
+    # 解析命令行参数，并将解析结果存储在 args 变量中
     args = parser.parse_args()
     cfg = yaml.safe_load(open(f"./config/{args.config}.yaml", "r"))
     train_net(cfg)
