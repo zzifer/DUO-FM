@@ -34,6 +34,7 @@ class RegularizedFMNet(nn.Module):
         evals_x, evals_y = evals_x.unsqueeze(0), evals_y.unsqueeze(0)
 
         # 使用torch.bmm函数将evecs_trans_x和feat_x相乘，以及evecs_trans_y和feat_y相乘，F_hat和G_hat都是3维张量
+        # 这一步应该是将特征映射到Laplace-Beltrami eigenbasis上
         F_hat = torch.bmm(evecs_trans_x, feat_x)
         G_hat = torch.bmm(evecs_trans_y, feat_y)
         A, B = F_hat, G_hat
