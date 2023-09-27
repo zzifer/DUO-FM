@@ -42,14 +42,20 @@ class DQFMLoss(nn.Module):
 
         # fmap ortho loss
         if self.w_ortho > 0:
+            # 创建单位阵
             I = torch.eye(C12.shape[1]).unsqueeze(0).to(C12.device)
+            # @运算符:其作用类似于torch.matmul
+            # C12与其转置的乘积，得到CC^T
             CCt = C12 @ C12.transpose(1, 2)
+            # CC^T与单位矩阵的Frobenius损失乘以权重w_orth
             self.ortho_loss = self.frob_loss(CCt, I) * self.w_ortho
             loss += self.ortho_loss
 
         # qfmap ortho loss
         if Q12 is not None and self.w_Qortho > 0:
+            # 创建单位阵
             I = torch.eye(Q12.shape[1]).unsqueeze(0).to(Q12.device)
+            # Q12与Q12转置的共轭的乘积，conj用于求共轭
             CCt = Q12 @ torch.conj(Q12.transpose(1, 2))
             self.Qortho_loss = self.frob_loss(CCt, I) * self.w_Qortho
             loss += self.Qortho_loss
