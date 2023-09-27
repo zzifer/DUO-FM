@@ -16,7 +16,9 @@ from Tools.utils import op_cpl
 class ScapeDataset(Dataset):
     """
     Implementation of shape matching Dataset !WITH VTS! correspondence files (to compute ground-truth).
+    数据集的类型由配置文件中的 type 字段指定，如果为 "vts"，则使用这个类
     This type of dataset is loaded if config['type'] = 'vts'
+    SCAPE使用了vts文件进行重新网格化以跟踪与原始 SCAPE数据集的对应关系。任何使用 vts 的数据集，都属于这个类别，因此可以通过此类进行利用。
     It is called Scape Dataset because historically, SCAPE was re-meshed with vts files to track correspondence
     to the original SCAPE dataset. Any dataset using vts (re-meshed as in
     [Continuous and orientation-preserving correspondences via functional maps, Ren et al. 2018 TOG])
@@ -94,15 +96,16 @@ class ScapeDataset(Dataset):
             print("  --> dataset not in cache, repopulating")
 
         # Load the meshes
-        # define files and order
+        # define files and order            
         shapes_split = "shapes_" + split
+        # 一个按字母顺序排列的形状文件名列表  
         self.used_shapes = sorted([x.stem for x in (Path(root_dir) / shapes_split).iterdir() if 'DS_' not in x.stem])
 
         # set combinations
-        # 通过 permutations() 函数生成一个形状组合的列表，即将每一对形状之间的组合作为元组 (i, j) 存储在 self.combinations 中
+        # 生成的所有形状的两两组合存储在 self.combinations 中，这是猜测
         self.combinations = list(permutations(range(len(self.used_shapes)), 2))
 
-        #
+                   
         mesh_dirpath = Path(root_dir) / shapes_split
         vts_dirpath = Path(root_dir) / "corres"
 
@@ -172,10 +175,10 @@ class ScapeDataset(Dataset):
         )
 
         # compute wks descriptors if required (and replace vertices field with it)
-        # 计算WKS描述符并用其替换每个形状的顶点数据
         if with_wks is not None:
             print("compute WKS descriptors")
             for i in tqdm(range(len(self.used_shapes))):
+                # 调用函数auto_WKS计算WKS描述符，并将计算结果赋值给self.verts_list[i]，从而用 WKS 描述符替换顶点列表中的原始顶点数据
                 self.verts_list[i] = auto_WKS(self.evals_list[i], self.evecs_list[i], with_wks).float()
 
         # now we also need to get the complex Laplacian and the spectral gradients
@@ -195,10 +198,12 @@ class ScapeDataset(Dataset):
                 continue
 
             # else load mesh and compute complex laplacian and gradient operators
+            # 创建一个 mesh_for_Q 对象，该对象表示当前形状的网格。这里使用了 qm.mesh 函数来加载形状的网格信息，同时指定了计算谱信息所需的参数
             mesh_for_Q = qm.mesh(str(mesh_dirpath / f"{shape_name}{ext}"),
                                  spectral=0, complex_spectral=n_cfmap, spectral_folder=root_dir)
-            #
+            # 计算当前形状的顶点梯度
             mesh_for_Q.grad_vert_op()
+            # 计算当前形状的复杂拉普拉斯算子和梯度运算符
             mesh_for_Q.grad_vc = op_cpl(mesh_for_Q.gradv.T).T
 
             self.cevecs_list += [mesh_for_Q.ceig]
