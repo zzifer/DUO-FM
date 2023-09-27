@@ -40,6 +40,7 @@ class RegularizedFMNet(nn.Module):
         A, B = F_hat, G_hat
 
         # 调用函数get_mask计算D，D是2维张量，采用unsqueeze(0)将其扩展为3维张量
+        # 猜测这个get_mask是用来计算∥CNM∆N −∆MCNM∥中的∆N和∆M这两个对角矩阵
         D = get_mask(evals_x.flatten(), evals_y.flatten(), self.resolvant_gamma, feat_x.device).unsqueeze(0)
 
         A_t = A.transpose(1, 2)
