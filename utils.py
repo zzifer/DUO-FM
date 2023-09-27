@@ -9,6 +9,7 @@ class FrobeniusLoss(nn.Module):
         super().__init__()
 
     def forward(self, a, b):
+        # 计算a和b的元素差的绝对值的平方，然后沿着第1和第2个维度对这些平方差进行求和，这里是所有元素直接相加
         loss = torch.sum(torch.abs(a - b) ** 2, axis=(1, 2))
         return torch.mean(loss)
 
