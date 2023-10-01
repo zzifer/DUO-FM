@@ -296,6 +296,8 @@ class ScapeDataset(Dataset):
             shape1["vts_sym"], shape2["vts_sym"] = self.vts_sym_list[idx1], self.vts_sym_list[idx2]
 
         # Compute fmap
+        # evecs---[点的数量,128]
+        # evec_1---[点的数量,50] 也就是取前50维的特征
         evec_1, evec_2 = shape1["evecs"][:, :self.n_fmap], shape2["evecs"][:, :self.n_fmap]
         vts1, vts2 = self.vts_list[idx1], self.vts_list[idx2]
 
