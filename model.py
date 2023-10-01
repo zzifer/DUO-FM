@@ -26,6 +26,7 @@ class RegularizedFMNet(nn.Module):
         evecs_trans_x和evecs_trans_y是它们对应的特征向量矩阵的转置
         """
     def forward(self, feat_x, feat_y, evals_x, evals_y, evecs_trans_x, evecs_trans_y):
+        # 这部分在Deep Geometric Functional Maps: Robust Feature Learning for Shape Correspondence的4.4节
         # compute linear operator matrix representation C1 and C2
         
         # evecs_trans_x和evecs_trans_y从3维张量扩展为4维张量
