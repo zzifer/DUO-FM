@@ -193,6 +193,7 @@ class mesh:
         ###
         if not os.path.exists(spec_folder):
             os.makedirs(spec_folder)
+        # save_spectral = "data/FAUST_r/sepctral/tr_reg_000.npz"
         save_spectral = join(spec_folder, self.name[:-4]+'.npz')
         load = exists(save_spectral)
         if load:
