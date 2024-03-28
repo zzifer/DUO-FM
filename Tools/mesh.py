@@ -62,6 +62,7 @@ class mesh:
                  normalized=False, normals=False,
                  spectral=30, complex_spectral=30, spectral_folder=None,
                  verbose=0):
+        # spectral_folder = "data/FAUST_r/"
 
         # extract info from path
         self.path = path
@@ -73,6 +74,7 @@ class mesh:
             print("loading ", self.name, "with init spectral =", spectral)
 
         # define vertices and faces
+        # v和f都是ndarray
         self.v, self.f = igl.read_triangle_mesh(path)
 
         # do some pre-processing if needed
